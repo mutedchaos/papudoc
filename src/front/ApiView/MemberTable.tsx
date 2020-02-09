@@ -17,6 +17,7 @@ interface Props {
 const Table = styled.table`
   font-family: sans-serif;
   width: 100%;
+  border-collapse: collapse;  
 `;
 
 const Heading = styled.tr`
@@ -27,15 +28,26 @@ const Heading = styled.tr`
   }
 `;
 
-const Row = styled.tr<{ even: boolean }>`
-  background: ${props => props.theme.background[props.even ? "even" : "odd"]};
-  &:hover {
+const Row = styled.tr<{ even: boolean }>`  
+`;
+
+
+const MultiRow = styled.tbody<{ even: boolean }>`
+  > tr {
+    background: ${props => props.theme.background[props.even ? "even" : "odd"]};
+    > td {
+      border-right: 1px solid white;
+      border-bottom: 1px solid white;
+    }
+    &:last-child {
+      td {
+        border-bottom: 2px solid white;
+      }
+    }
+  }
+  &:hover > tr {
     background: ${props =>
     props.theme.background.hover[props.even ? "even" : "odd"]};
-  }
-  > td {
-    border-right: 1px dotted #ccc;
-    border-bottom: 1px dotted #ccc;
   }
 `;
 
@@ -50,24 +62,22 @@ export default function MemberTable({ members }: Props) {
             <th>Type</th>
           </Heading>
         </thead>
-        <tbody>
-          {members.map((member, i) => (
-            <React.Fragment key={i}>
-              <Row even={i % 2 === 0}>
-                <td>{member.name}</td>
-                <td>{member.required ? "Yes" : "No"}</td>
-                <td>{member.type}</td>
+        {members.map((member, i) => (
+          <MultiRow key={i} even={i % 2 === 0}>
+            <Row even={i % 2 === 0}>
+              <td>{member.name}</td>
+              <td>{member.required ? "Yes" : "No"}</td>
+              <td>{member.type}</td>
+            </Row>
+            {member.description && (
+              <Row className="description" even={i % 2 === 0}>
+                <td colSpan={3}>
+                  <Description>{member.description}</Description>
+                </td>
               </Row>
-              {member.description && (
-                <Row even={i % 2 === 0}>
-                  <td colSpan={3}>
-                    <Description>{member.description}</Description>
-                  </td>
-                </Row>
-              )}
-            </React.Fragment>
-          ))}
-        </tbody>
+            )}
+          </MultiRow>
+        ))}
       </Table>
     </MemberTableTheme>
   );

@@ -22,6 +22,7 @@ const api = {
     .optionalQuery(["gamma"] as const)
     .queryBool(["beta"] as const)
     .body<{
+      /** @description This is a number. */
       number: number;
       string: string;
       boolean: boolean;

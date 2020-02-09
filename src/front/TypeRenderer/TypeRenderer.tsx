@@ -1,7 +1,7 @@
 import ts from "typescript";
 import React, { ReactElement, useContext, useEffect, useState } from "react";
 import MemberTable from "../ApiView/MemberTable";
-import { useChecker, CheckerContext } from "../CheckerContext";
+import { useChecker } from "../CheckerContext";
 import { NamedTypesContext } from "../NamedTypesContext";
 import compact from 'lodash/compact'
 
@@ -89,6 +89,7 @@ function TypeObject(props: Props) {
       (member as any).syntheticOrigin?.valueDeclaration ||
       member.valueDeclaration
     );
+    const description = member.getJsDocTags().find(tag => tag.name === 'description')?.text
     if (member.flags & ts.SymbolFlags.Method) return null
     return {
       name: member.name,
@@ -100,7 +101,8 @@ function TypeObject(props: Props) {
           contextName={[...props.contextName, member.name]}
         />
       ),
-      required: !(member.flags & ts.SymbolFlags.Optional)
+      required: !(member.flags & ts.SymbolFlags.Optional),
+      description
     };
   }))
 
