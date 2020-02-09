@@ -6,10 +6,10 @@ interface Props {
   heading: ReactNode;
 }
 
-export default function Section({ heading, children }: Props) {
+export default function SubSection({ heading, children }: Props) {
   return (
     <div>
-      <h3>{heading}</h3>
+      <h4>{heading}</h4>
       <div>{children}</div>
     </div>
   );

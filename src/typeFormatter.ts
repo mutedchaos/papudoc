@@ -1,36 +1,44 @@
-import ts from 'typescript'
+import ts from "typescript";
 
-type TypeFormatter = (type: ts.Type) => string
+type TypeFormatter = (type: ts.Type) => string;
 
 export default function formatType(checker: ts.TypeChecker, type: ts.Type) {
-  const handlers: Map<ts.TypeFlags, TypeFormatter | string> = new Map<ts.TypeFlags, TypeFormatter | string>([
-    [ts.TypeFlags.Any, 'any'],
-    [ts.TypeFlags.Unknown, 'unknown'],
-    [ts.TypeFlags.String, 'string'],
-    [ts.TypeFlags.Number, 'number'],
-    [ts.TypeFlags.Boolean, 'boolean'],
-    [(ts.TypeFlags.Boolean | ts.TypeFlags.Union), 'boolean'],
-    [(ts.TypeFlags.Enum | ts.TypeFlags.Union), 'enum'],
-    [(ts.TypeFlags.EnumLiteral | ts.TypeFlags.Union), 'enumliteral'],
-    [ts.TypeFlags.Void, 'void'],
-    [ts.TypeFlags.Undefined, 'undefined'],
-    [ts.TypeFlags.Null, 'null'],
-    [ts.TypeFlags.Never, 'never'],
-    [ts.TypeFlags.BigInt, 'bigint'],
+  const handlers: Map<ts.TypeFlags, TypeFormatter | string> = new Map<
+    ts.TypeFlags,
+    TypeFormatter | string
+  >([
+    [ts.TypeFlags.Any, "any"],
+    [ts.TypeFlags.Unknown, "unknown"],
+    [ts.TypeFlags.String, "string"],
+    [ts.TypeFlags.Number, "number"],
+    [ts.TypeFlags.Boolean, "boolean"],
+    [ts.TypeFlags.Boolean | ts.TypeFlags.Union, "boolean"],
+    [ts.TypeFlags.Enum | ts.TypeFlags.Union, "enum"],
+    [ts.TypeFlags.EnumLiteral | ts.TypeFlags.Union, "enumliteral"],
+    [ts.TypeFlags.Void, "void"],
+    [ts.TypeFlags.Undefined, "undefined"],
+    [ts.TypeFlags.Null, "null"],
+    [ts.TypeFlags.Never, "never"],
+    [ts.TypeFlags.BigInt, "bigint"],
     [ts.TypeFlags.StringLiteral, formatStringLiteral],
-    [ts.TypeFlags.NumberLiteral, type => (type as ts.LiteralType).value.toString()],
+    [
+      ts.TypeFlags.NumberLiteral,
+      type => (type as ts.LiteralType).value.toString()
+    ],
     [ts.TypeFlags.BooleanLiteral, type => checker.typeToString(type)],
     [ts.TypeFlags.Object, formatObject],
     [ts.TypeFlags.Union, formatUnion],
-    [ts.TypeFlags.Intersection, formatIntersection],
-  ])
+    [ts.TypeFlags.Intersection, formatIntersection]
+  ]);
 
-  const types = [...handlers.entries()].filter(([key]) => (type.flags === key))
-    .map(([, val]) => typeof val === 'string' ? val : val(type))
+  const types = [...handlers.entries()]
+    .filter(([key]) => type.flags === key)
+    .map(([, val]) => (typeof val === "string" ? val : val(type)));
 
-  if (types.length === 0) return 'unsupported@' + type.flags
-  if (types.length > 1) throw new Error('Multiple handlers for ' + type.flags)
-  return types[0]
+  if (types.length === 0) return "unsupported@" + type.flags;
+  if (types.length > 1) throw new Error("Multiple handlers for " + type.flags);
+
+  return types[0];
   /*
   Number = 8,
     Boolean = 16,
@@ -77,39 +85,48 @@ export default function formatType(checker: ts.TypeChecker, type: ts.Type) {
     Narrowable = 133970943,
     NotUnionOrUnit = 67637251,*/
 
-
-
-
   function formatUnion(union: ts.Type): string {
-    const type = union as ts.UnionOrIntersectionType
-    return '(' + type.types.map(type => formatType(checker, type)).join(' | ') + ')'
+    const type = union as ts.UnionOrIntersectionType;
+    return (
+      "(" + type.types.map(type => formatType(checker, type)).join(" | ") + ")"
+    );
   }
 
   function formatIntersection(union: ts.Type): string {
-    const type = union as ts.UnionOrIntersectionType
-    return '(' + type.types.map(type => formatType(checker, type)).join(' & ') + ')'
+    const type = union as ts.UnionOrIntersectionType;
+    return (
+      "(" + type.types.map(type => formatType(checker, type)).join(" & ") + ")"
+    );
   }
 
   function formatStringLiteral(type: ts.Type) {
-    return "'" + (type as ts.LiteralType).value + "'"
+    return "'" + (type as ts.LiteralType).value + "'";
   }
 
   function formatObject(type: ts.Type): string {
-
-    if (type.getSymbol()?.name === 'Array') return formatArray(type)
-    const memberEntries: Array<{ key: string, type: string }> = []
+    if (type.getSymbol()?.name === "Array") return formatArray(type);
+    const memberEntries: Array<{ key: string; type: string }> = [];
 
     type.getProperties().forEach(member => {
       memberEntries.push({
         key: member.name,
-        type: formatType(checker, checker.getTypeAtLocation((member as any).syntheticOrigin?.valueDeclaration || member.valueDeclaration))
-      })
-    })
-    return `{ ${memberEntries.map(entry => `${entry.key}: ${entry.type}`).join(', ')} }`
+        type: formatType(
+          checker,
+          checker.getTypeAtLocation(
+            (member as any).syntheticOrigin?.valueDeclaration ||
+              member.valueDeclaration
+          )
+        )
+      });
+    });
+    return `{ ${memberEntries
+      .map(entry => `${entry.key}: ${entry.type}`)
+      .join(", ")} }`;
   }
 
   function formatArray(arrayType: any) {
-    return 'Array<' + formatType(checker, arrayType.resolvedTypeArguments[0]) + '>'
+    return (
+      "Array<" + formatType(checker, arrayType.resolvedTypeArguments[0]) + ">"
+    );
   }
-
 }

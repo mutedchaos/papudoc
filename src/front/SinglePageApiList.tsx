@@ -3,11 +3,15 @@ import React from "react";
 import APIView from "./ApiView/APIView";
 
 interface Props {
-  analysis: Analysis
+  analysis: Analysis;
 }
 
 export default function SinglePageApiList({ analysis }: Props) {
-  return <>
-    {analysis.map(entry => <APIView key={entry.api.path.join('/')} api={entry} />)}
-  </>
+  return (
+    <>
+      {analysis.map(entry => (
+        <APIView key={entry.api.path.join("/")} api={entry} />
+      ))}
+    </>
+  );
 }

@@ -2,9 +2,9 @@ import { ReactNode } from "react";
 import React from "react";
 
 interface Props {
-  children: ReactNode
+  children: ReactNode;
 }
 
-export default function Description({ children}: Props) {
-return <div>{children}</div>
+export default function Description({ children }: Props) {
+  return <div>{children}</div>;
 }

@@ -1,10 +1,10 @@
-import React from 'react'
+import React from "react";
 import { AnalyzedAPI } from "../../analyzer";
-import Section from './Section';
-import MemberTable from './MemberTable';
+import Section from "./Section";
+import MemberTable from "./MemberTable";
 
 interface Props {
-  api: AnalyzedAPI
+  api: AnalyzedAPI;
 }
 
 export default function QueryParameters({ api }: Props) {
@@ -12,22 +12,24 @@ export default function QueryParameters({ api }: Props) {
     ...api.query.map(q => ({
       name: q,
       required: true,
-      type: 'string'
+      type: "string"
     })),
     ...api.optionalQuery.map(q => ({
       name: q,
       required: false,
-      type: 'string'
+      type: "string"
     })),
     ...api.boolQuery.map(q => ({
       name: q,
       required: true,
       type: '"true" or "false"'
     }))
-  ].sort((a, b) => a.name.localeCompare(b.name))
+  ].sort((a, b) => a.name.localeCompare(b.name));
 
-  if (!members.length) return null
-  return <Section heading={'Query parameters'}>
-    <MemberTable members={members} />
-  </Section>
+  if (!members.length) return null;
+  return (
+    <Section heading={"Query parameters"}>
+      <MemberTable members={members} />
+    </Section>
+  );
 }
