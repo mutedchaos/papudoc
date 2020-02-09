@@ -30,7 +30,8 @@ export function analyze(filename: string) {
       console.log({
         url: getURL(singleAPI.route),
         ...singleAPI.route.apiUrlParameters,
-        response: formatType(checker, getResponseType(v)!)
+        response: formatType(checker, getTypeParameterFor(v, 'response')!),
+        body: formatType(checker, getTypeParameterFor(v, 'body')!)
       })
 
       break // TODO: do all
@@ -80,7 +81,7 @@ export function analyze(filename: string) {
       return findValueAtPath(member.valueDeclaration, path.slice(1))
     }
 
-    function getResponseType(symbol: ts.Symbol) {
+    function getTypeParameterFor(symbol: ts.Symbol, forType: string) {
       function ln(x: ts.Node, d = 0) {
         for (const c of x.getChildren()) {
           console.log(Array(d).fill(' ').join('') + c.kind + ' ' + c.pos)
@@ -99,7 +100,7 @@ export function analyze(filename: string) {
       function findCall(node: ts.Node): ts.Identifier | undefined {
         return node.forEachChild(child => {
           if (ts.isIdentifier(child)) {
-            if (child.escapedText === 'response') return child
+            if (child.escapedText === forType) return child
           } else {
             return child.forEachChild(findCall)
           }

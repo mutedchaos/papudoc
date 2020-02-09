@@ -9,7 +9,9 @@ interface InterfaceHere {
 const api = {
   //testGet: decl.declareGetAPI('/test-get').response<string[]>(),
   //testGet: decl.declareGetAPI('/test-get').response<{ key: string, value: number }>(),
-  testGet: decl.declareGetAPI('/test-get').response<Array<Omit<{ key: string, value: number }, 'key'>>[]>(),
+  testGet: decl.declareGetAPI('/test-get')
+    .body<string>()
+    .response<Array<Omit<{ key: string, value: number }, 'key'>>[]>(),
 
 }
 
