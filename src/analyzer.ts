@@ -4,6 +4,18 @@ import formatType from "./typeFormatter";
 
 const tsConfigFilename = __dirname + '/../tsconfig.json' // TODO: find out based on source file
 
+export type Analysis = ReturnType<typeof analyze>
+
+interface AnalyzedAPI {
+  api: {
+    path: string
+    route: any
+  }
+  url: string
+  params: string
+  body: string
+  response: number
+}
 
 export function analyze(filename: string) {
   let papudocIndex = -1
@@ -14,7 +26,14 @@ export function analyze(filename: string) {
   const file = program.getSourceFile(filename)
   if (!file) throw new Error('Could not get file')
 
+
+  let APIs: Array<AnalyzedAPI[]> = []
+
   require(filename)
+
+  return APIs
+
+
 
   function handleAPI(api: any) {
     const index = ++papudocIndex
@@ -23,20 +42,24 @@ export function analyze(filename: string) {
 
     const checker = program.getTypeChecker()
     //console.log(call)
-    console.log('xx')
-    for (const singleAPI of findAPIs(api)) {
+    const apiData: Array<AnalyzedAPI> = [...findAPIs(api)].map((singleAPI): AnalyzedAPI => {
       const v = findValueAtPath(call.arguments[0], singleAPI.path)
       if (!v) throw new Error('Failed to find value')
-      console.log({
+      const responseType = getTypeParameterFor(v, 'response')
+      const bodyType = getTypeParameterFor(v, 'body')
+      return ({
+        api: singleAPI,
         url: getURL(singleAPI.route),
         ...singleAPI.route.apiUrlParameters,
-        response: formatType(checker, getTypeParameterFor(v, 'response')!),
-        body: formatType(checker, getTypeParameterFor(v, 'body')!)
+        responseType,
+        bodyType,
+        response: responseType ? formatType(checker, responseType) : 'unknown',
+        body: bodyType ? formatType(checker, bodyType) : 'unknown'
       })
 
-      break // TODO: do all
-
-    }
+    })
+    APIs.push(apiData)
+    return apiData
 
 
 
