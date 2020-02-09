@@ -3,19 +3,22 @@ import { Analysis } from "../analyzer";
 import Layout from "./Layout";
 import fs from 'fs'
 import path from 'path'
+import NavBar from "./NavBar";
+import SinglePageApiList from "./SinglePageApiList";
 
 interface Props { analysis: Analysis }
 
 export default function SinglePageFront({ analysis }: Props) {
   const pageTitle = useMemo(determinePageTitle, [])
-
   return <html>
     <head>
-      <title>{pageTitle}}</title>
+      <title>{pageTitle}</title>
       <script src="scripts.js"></script>
     </head>
     <body>
-      <Layout navbar={<span>navbar</span>} content={<h1>{pageTitle}</h1>} />
+      <Layout navbar={<NavBar analysis={analysis} />} content={<><h1>{pageTitle}</h1>
+        <SinglePageApiList analysis={analysis} />
+      </>} />
     </body>
   </html>
 }

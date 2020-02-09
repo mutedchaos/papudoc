@@ -1,5 +1,4 @@
 import ts from 'typescript'
-import { format } from 'url'
 
 type TypeFormatter = (type: ts.Type) => string
 
@@ -10,6 +9,9 @@ export default function formatType(checker: ts.TypeChecker, type: ts.Type) {
     [ts.TypeFlags.String, 'string'],
     [ts.TypeFlags.Number, 'number'],
     [ts.TypeFlags.Boolean, 'boolean'],
+    [(ts.TypeFlags.Boolean | ts.TypeFlags.Union), 'boolean'],
+    [(ts.TypeFlags.Enum | ts.TypeFlags.Union), 'enum'],
+    [(ts.TypeFlags.EnumLiteral | ts.TypeFlags.Union), 'enumliteral'],
     [ts.TypeFlags.Void, 'void'],
     [ts.TypeFlags.Undefined, 'undefined'],
     [ts.TypeFlags.Null, 'null'],
@@ -23,10 +25,10 @@ export default function formatType(checker: ts.TypeChecker, type: ts.Type) {
     [ts.TypeFlags.Intersection, formatIntersection],
   ])
 
-  const types = [...handlers.entries()].filter(([key]) => (type.flags & key) === key)
+  const types = [...handlers.entries()].filter(([key]) => (type.flags === key))
     .map(([, val]) => typeof val === 'string' ? val : val(type))
 
-  if (types.length === 0) throw new Error('Cannot handle flags ' + type.flags)
+  if (types.length === 0) return 'unsupported@' + type.flags
   if (types.length > 1) throw new Error('Multiple handlers for ' + type.flags)
   return types[0]
   /*
@@ -74,7 +76,7 @@ export default function formatType(checker: ts.TypeChecker, type: ts.Type) {
     StructuredOrInstantiable = 66846720,
     Narrowable = 133970943,
     NotUnionOrUnit = 67637251,*/
-  throw new Error('Unknown flags: ' + type.flags)
+
 
 
 
@@ -100,7 +102,7 @@ export default function formatType(checker: ts.TypeChecker, type: ts.Type) {
     type.getProperties().forEach(member => {
       memberEntries.push({
         key: member.name,
-        type: formatType(checker, checker.getTypeAtLocation(member.syntheticOrigin?.valueDeclaration || member.valueDeclaration))
+        type: formatType(checker, checker.getTypeAtLocation((member as any).syntheticOrigin?.valueDeclaration || member.valueDeclaration))
       })
     })
     return `{ ${memberEntries.map(entry => `${entry.key}: ${entry.type}`).join(', ')} }`

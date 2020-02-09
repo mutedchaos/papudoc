@@ -6,15 +6,19 @@ const tsConfigFilename = __dirname + '/../tsconfig.json' // TODO: find out based
 
 export type Analysis = ReturnType<typeof analyze>
 
-interface AnalyzedAPI {
-  api: {
-    path: string
-    route: any
-  }
+export interface AnalyzedAPI {
+  api: API,
   url: string
-  params: string
+  params: string[]
+  query: string[]
+  optionalQuery: string[]
+  boolQuery: string[]
   body: string
-  response: number
+  response: string
+  responseType: ts.Type | null
+  bodyType: ts.Type | null
+  method: string
+  checker: ts.TypeChecker
 }
 
 export function analyze(filename: string) {
@@ -27,7 +31,7 @@ export function analyze(filename: string) {
   if (!file) throw new Error('Could not get file')
 
 
-  let APIs: Array<AnalyzedAPI[]> = []
+  let APIs: AnalyzedAPI[] = []
 
   require(filename)
 
@@ -47,32 +51,38 @@ export function analyze(filename: string) {
       if (!v) throw new Error('Failed to find value')
       const responseType = getTypeParameterFor(v, 'response')
       const bodyType = getTypeParameterFor(v, 'body')
-      return ({
+      const api: AnalyzedAPI = {
         api: singleAPI,
         url: getURL(singleAPI.route),
         ...singleAPI.route.apiUrlParameters,
         responseType,
         bodyType,
         response: responseType ? formatType(checker, responseType) : 'unknown',
-        body: bodyType ? formatType(checker, bodyType) : 'unknown'
-      })
+        body: bodyType ? formatType(checker, bodyType) : 'unknown',
+        method: singleAPI.route.method,
+        checker
+
+      }
+      return (api)
 
     })
-    APIs.push(apiData)
+    for (const api of apiData) {
+      APIs.push(api)
+    }
     return apiData
 
 
 
 
     function getURL(route: any) {
-      // TODO: __parent is not at all available
+      // TODO: __parent is not at all available, needs to be added to papupata proper
       route.__parent.configure({ baseURL: '' })
       const params: string[] = route.apiUrlParameters.params
       const paramObj: any = {}
       for (const param of params) {
-        paramObj[param] = ':' + param
+        paramObj[param] = '[' + param + ']'
       }
-      return route.getURL(paramObj)
+      return route.getURL(paramObj).replace(/%5B(.+?)%5D/g, ':$1')
     }
 
     function findCall(targetIndex: number) {
@@ -107,7 +117,6 @@ export function analyze(filename: string) {
     function getTypeParameterFor(symbol: ts.Symbol, forType: string) {
       function ln(x: ts.Node, d = 0) {
         for (const c of x.getChildren()) {
-          console.log(Array(d).fill(' ').join('') + c.kind + ' ' + c.pos)
           ln(c, d + 1)
         }
       }
@@ -136,7 +145,15 @@ export function analyze(filename: string) {
 
 interface API {
   path: string[]
-  route: any
+  route: {
+    apiUrlParameters: {
+      query: string[]
+      params: string[]
+      optionalQuery: string[]
+      boolQuery: string[]
+    }
+    method: string
+  }
 }
 
 function* findAPIs(api: any, currentPath: string[] = []): IterableIterator<API> {

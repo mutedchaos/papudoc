@@ -1,5 +1,6 @@
 import { Analysis } from "../analyzer";
 import React from "react";
+import pathToAnchor from "./utils/pathToAnchor";
 
 interface Props {
   analysis: Analysis
@@ -7,6 +8,6 @@ interface Props {
 
 export default function NavBar({ analysis }: Props) {
   return <ul>
-    {analysis.map(() => <span>ntryu</span>)}
+    {analysis.map((entry) => <a key={entry.api.path.join('.')} href={`#${pathToAnchor(entry.api.path)}`}>{entry.api.path.join('/')}</a>)}
   </ul>
 }
