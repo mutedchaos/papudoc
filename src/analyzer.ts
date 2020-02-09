@@ -19,6 +19,7 @@ export interface AnalyzedAPI {
   bodyType: ts.Type | null;
   method: string;
   checker: ts.TypeChecker;
+  parameterDescriptions: Map<string, string | undefined>
 }
 
 export function analyze(filename: string) {
@@ -41,12 +42,20 @@ export function analyze(filename: string) {
 
   function handleAPI(api: any) {
     const index = ++papudocIndex;
-    const call = findCall(index);
+    const call = findPapudocCall(index);
     if (!call) throw new Error("Failed to find papudoc call");
 
     const checker = program.getTypeChecker();
     const apiData: Array<AnalyzedAPI> = [...findAPIs(api)].map(
       (singleAPI): AnalyzedAPI => {
+        /*ptr(call.arguments[0])
+        function ptr(node: ts.Node, d = 1) {
+          console.log('pp', Array(d).fill(' ').join(' ') + node.kind)
+          node.forEachChild(child => {
+
+            ptr(child, d + 1)
+          })
+        }*/
         const v = findValueAtPath(call.arguments[0], singleAPI.path);
         if (!v) throw new Error("Failed to find value");
         const responseType = getTypeParameterFor(v, "response");
@@ -62,7 +71,8 @@ export function analyze(filename: string) {
             : "unknown",
           body: bodyType ? formatType(checker, bodyType) : "unknown",
           method: singleAPI.route.method,
-          checker
+          checker,
+          parameterDescriptions: getParameterDescriptions(v)
         };
         return api;
       }
@@ -83,7 +93,7 @@ export function analyze(filename: string) {
       return route.getURL(paramObj).replace(/%5B(.+?)%5D/g, ":$1");
     }
 
-    function findCall(targetIndex: number) {
+    function findPapudocCall(targetIndex: number) {
       let atIndex = -1;
       return ts.forEachChild(file!, node => checkNode(node));
 
@@ -102,6 +112,28 @@ export function analyze(filename: string) {
       }
     }
 
+    function getParameterDescriptions(symbol: ts.Symbol) {
+
+      const paramTags = symbol.getJsDocTags().filter(tag => tag.name === 'param')
+
+      const entries = paramTags.map(p => {
+        const [, key, description] = p.text?.match(/^([^\s]+) (.+)/) || [, '', '']
+        return [key!, description] as const
+      })
+
+      return new Map<string, string | undefined>(entries)
+    }
+
+    function findNamedCall(node: ts.Node, name: string): ts.Identifier | undefined {
+      return node.forEachChild(child => {
+        if (ts.isIdentifier(child)) {
+          if (child.escapedText === name) return child;
+        } else {
+          return findNamedCall(child, name)
+        }
+      });
+    }
+
     function findValueAtPath(node: ts.Node, path: string[]): ts.Symbol | null {
       const members = checker.getTypeAtLocation(node).getSymbol()?.members;
       if (!members) return null;
@@ -112,14 +144,9 @@ export function analyze(filename: string) {
     }
 
     function getTypeParameterFor(symbol: ts.Symbol, forType: string) {
-      function ln(x: ts.Node, d = 0) {
-        for (const c of x.getChildren()) {
-          ln(c, d + 1);
-        }
-      }
-      ln(symbol.valueDeclaration);
 
-      const call = findCall(symbol.valueDeclaration);
+
+      const call = findNamedCall(symbol.valueDeclaration, forType);
       if (call) {
         return checker.getTypeAtLocation(
           (call.parent.parent as ts.NodeWithTypeArguments).typeArguments?.[0]!
@@ -127,15 +154,7 @@ export function analyze(filename: string) {
       }
       return null;
 
-      function findCall(node: ts.Node): ts.Identifier | undefined {
-        return node.forEachChild(child => {
-          if (ts.isIdentifier(child)) {
-            if (child.escapedText === forType) return child;
-          } else {
-            return child.forEachChild(findCall);
-          }
-        });
-      }
+
     }
   }
 }

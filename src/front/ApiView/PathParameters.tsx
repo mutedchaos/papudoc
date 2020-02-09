@@ -15,7 +15,8 @@ export default function PathParameters({ api }: Props) {
         members={api.params.map(param => ({
           name: param,
           required: true,
-          type: "string"
+          type: "string",
+          description: api.parameterDescriptions.get(param)
         }))}
       />
     </Section>

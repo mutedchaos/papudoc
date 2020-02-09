@@ -7,9 +7,16 @@ interface Props {
 }
 
 const Container = styled.div`
-  margin-left: 30px;
+  display: flex;
+`;
+
+const Prefix = styled.div`
+  font-size: 10px;
+  background: #BBF;
+  padding-top: 3px;
+  margin-right: 4px;
 `
 
 export default function Description({ children }: Props) {
-  return <Container>{children}</Container>;
+  return <Container><Prefix>Description</Prefix><span>{children}</span></Container>;
 }

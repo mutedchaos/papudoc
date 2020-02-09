@@ -8,14 +8,15 @@ interface Props {
 
 export default function NavBar({ analysis }: Props) {
   return (
-    <ul>
-      {analysis.map(entry => (
+    <ul id="navbar">
+      {analysis.map(entry => (<div key={entry.api.path.join(".")}>
         <a
-          key={entry.api.path.join(".")}
+
           href={`#${pathToAnchor(entry.api.path)}`}
         >
           {entry.api.path.join("/")}
         </a>
+      </div>
       ))}
     </ul>
   );

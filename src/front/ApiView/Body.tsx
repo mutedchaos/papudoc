@@ -11,7 +11,6 @@ export default function Body({ api }: Props) {
   if (!api.bodyType) return null;
   return (
     <Section heading={"Body"}>
-      <div>Full signature: {api.body}</div>
       <TypeRenderer
         type={api.bodyType}
         isTopLevel={true}

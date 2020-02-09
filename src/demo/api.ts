@@ -15,9 +15,18 @@ enum MyEnum {
 const api = {
   //testGet: decl.declareGetAPI('/test-get').response<string[]>(),
   //testGet: decl.declareGetAPI('/test-get').response<{ key: string, value: number }>(),
+
+  /** 
+   * @param id This is the id for the thing 
+  * @param gamma is also kinda cool  
+  * */
   testGet: decl
     .declareGetAPI("/test-get/:id")
-    .params(["id"] as const)
+    .params([
+      "id",
+      "alsodesc",
+      "nodesc"
+    ] as const)
     .query(["alpha"] as const)
     .optionalQuery(["gamma"] as const)
     .queryBool(["beta"] as const)
@@ -41,10 +50,24 @@ const api = {
       constboolean: false;
       intersection: { key: string } & { another: number };
       tuple: [string, number, boolean];
-      method(): void
-      function: () => void
+      method(): void;
+      function: () => void;
+      deeper: {
+        has: {
+          a: {
+            field: string
+          }
+        }
+      }
     }>()
     .response<Array<Omit<{ key: string; value: number }, "key">>[]>()
+  ,
+  deep: {
+    testPost: decl
+      .declareGetAPI("/test-get")
+      .body<InterfaceHere>()
+      .response<string>()
+  }
 };
 
 papudoc(api);

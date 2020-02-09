@@ -17,7 +17,7 @@ interface Props {
 const Table = styled.table`
   font-family: sans-serif;
   width: 100%;
-  border-collapse: collapse;  
+  border-collapse: collapse;
 `;
 
 const Heading = styled.tr`
@@ -28,9 +28,7 @@ const Heading = styled.tr`
   }
 `;
 
-const Row = styled.tr<{ even: boolean }>`  
-`;
-
+const Row = styled.tr<{ even: boolean }>``;
 
 const MultiRow = styled.tbody<{ even: boolean }>`
   > tr {
@@ -38,6 +36,8 @@ const MultiRow = styled.tbody<{ even: boolean }>`
     > td {
       border-right: 1px solid white;
       border-bottom: 1px solid white;
+      font-size: 12px;
+      padding: 2px;
     }
     &:last-child {
       td {
@@ -51,15 +51,25 @@ const MultiRow = styled.tbody<{ even: boolean }>`
   }
 `;
 
-export default function MemberTable({ members }: Props) {
+const Th = styled.th`
+  font-size: 12px;
+  background: #BBF;
+  padding: 2px 2px;
+`
+
+export default function MemberTable({ members }: Props) {  
+  const useDescriptions = members.some(m => m.description)
   return (
     <MemberTableTheme>
       <Table>
         <thead>
           <Heading>
-            <th>Name</th>
-            <th>Required</th>
-            <th>Type</th>
+            <Th>Name</Th>
+            <Th>Required</Th>
+            <Th>Type</Th>
+            {useDescriptions &&
+              <Th>Description</Th>
+            }
           </Heading>
         </thead>
         {members.map((member, i) => (
@@ -68,14 +78,10 @@ export default function MemberTable({ members }: Props) {
               <td>{member.name}</td>
               <td>{member.required ? "Yes" : "No"}</td>
               <td>{member.type}</td>
+              {useDescriptions &&
+                <td>{member.description}</td>
+              }
             </Row>
-            {member.description && (
-              <Row className="description" even={i % 2 === 0}>
-                <td colSpan={3}>
-                  <Description>{member.description}</Description>
-                </td>
-              </Row>
-            )}
           </MultiRow>
         ))}
       </Table>

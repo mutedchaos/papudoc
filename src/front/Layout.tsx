@@ -1,6 +1,12 @@
 import { ReactNode } from "react";
-import styled from "styled-components";
+import styled, { createGlobalStyle } from "styled-components";
 import React from "react";
+
+const GlobalStyles = createGlobalStyle`
+  #navbar a.selected {
+    font-weight: bold;
+  }
+`
 
 interface Props {
   navbar: ReactNode;
@@ -29,6 +35,7 @@ const ContentContainer = styled.div`
 export default function Layout({ navbar, content }: Props) {
   return (
     <MainContainer>
+      <GlobalStyles />
       <NavBarContainer>{navbar}</NavBarContainer>
       <ContentContainer>{content}</ContentContainer>
     </MainContainer>

@@ -3,7 +3,7 @@ import React, { ReactElement, useContext, useEffect, useState } from "react";
 import MemberTable from "../ApiView/MemberTable";
 import { useChecker } from "../CheckerContext";
 import { NamedTypesContext } from "../NamedTypesContext";
-import compact from 'lodash/compact'
+import compact from "lodash/compact";
 
 interface Props {
   type: ts.Type;
@@ -78,39 +78,43 @@ function TypeObject(props: Props) {
 
   if (!isTopLevel) {
     return (
-      <span>
-        See: <a href={"#" + hash?.hash}>{hash?.label}</a>
-      </span>
+      <div>
+        <div>Object</div>
+        <div>See: <a href={"#" + hash?.hash}>{hash?.label}</a></div>
+      </div>
     );
   }
 
-  const members = compact(type.getProperties().map(member => {
-    const valueType = checker.getTypeAtLocation(
-      (member as any).syntheticOrigin?.valueDeclaration ||
-      member.valueDeclaration
-    );
-    const description = member.getJsDocTags().find(tag => tag.name === 'description')?.text
-    if (member.flags & ts.SymbolFlags.Method) return null
-    return {
-      name: member.name,
-      type: (
-        <TypeRenderer
-          type={valueType}
-          isTopLevel={false}
-          containingType={type}
-          contextName={[...props.contextName, member.name]}
-        />
-      ),
-      required: !(member.flags & ts.SymbolFlags.Optional),
-      description
-    };
-  }))
+  const members = compact(
+    type.getProperties().map(member => {
+      const valueType = checker.getTypeAtLocation(
+        (member as any).syntheticOrigin?.valueDeclaration ||
+        member.valueDeclaration
+      );
+      const description = member
+        .getJsDocTags()
+        .find(tag => tag.name === "description")?.text;
+      if (member.flags & ts.SymbolFlags.Method) return null;
+      return {
+        name: member.name,
+        type: (
+          <TypeRenderer
+            type={valueType}
+            isTopLevel={false}
+            containingType={type}
+            contextName={[...props.contextName, member.name]}
+          />
+        ),
+        required: !(member.flags & ts.SymbolFlags.Optional),
+        description
+      };
+    })
+  );
 
   return (
     <div>
-      <MemberTable
-        members={members}
-      />
+      <p>An object with the following fields:</p>
+      <MemberTable members={members} />
     </div>
   );
 }
@@ -154,7 +158,7 @@ function BooleanLiteral({ type }: Props) {
 function TypeArray({ type, isTopLevel, contextName }: Props) {
   return (
     <div>
-      Array of the following items:
+      Array of:{' '}
       <TypeRenderer
         type={(type as any).resolvedTypeArguments[0]}
         isTopLevel={isTopLevel}
