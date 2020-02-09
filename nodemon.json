@@ -1,0 +1,9 @@
+{
+  "ext": "js,jsx,json,ts,tsx",
+  "delay": "200ms",
+  "ignore": [
+    "client/",
+    "build/web/",
+    "snapshots/"
+  ]
+}

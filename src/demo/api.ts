@@ -6,9 +6,10 @@ const decl = new APIDeclaration()
 interface InterfaceHere {
   key: string
 }
-
 const api = {
-  testGet: decl.declareGetAPI('/test-get').response<InterfaceHere>(),
+  //testGet: decl.declareGetAPI('/test-get').response<string[]>(),
+  //testGet: decl.declareGetAPI('/test-get').response<{ key: string, value: number }>(),
+  testGet: decl.declareGetAPI('/test-get').response<Array<Omit<{ key: string, value: number }, 'key'>>[]>(),
 
 }
 

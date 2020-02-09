@@ -1,6 +1,6 @@
-import { papudoc, setPapudocHandler } from "./papudoc";
+import { setPapudocHandler } from "./papudoc";
 import * as ts from 'typescript'
-import { link } from "fs";
+import formatType from "./typeFormatter";
 
 const tsConfigFilename = __dirname + '/../tsconfig.json' // TODO: find out based on source file
 
@@ -25,15 +25,19 @@ export function analyze(filename: string) {
     //console.log(call)
     console.log('xx')
     for (const singleAPI of findAPIs(api)) {
+      const v = findValueAtPath(call.arguments[0], singleAPI.path)
+      if (!v) throw new Error('Failed to find value')
       console.log({
         url: getURL(singleAPI.route),
         ...singleAPI.route.apiUrlParameters,
-        response: getResponseType(findValueAtPath(call.arguments[0], singleAPI.path))
+        response: formatType(checker, getResponseType(v)!)
       })
 
       break // TODO: do all
 
     }
+
+
 
 
     function getURL(route: any) {
@@ -87,20 +91,10 @@ export function analyze(filename: string) {
 
       const call = findCall(symbol.valueDeclaration)
       if (call) {
-        console.log('cc', checker.getTypeAtLocation(call.parent.parent.typeArguments[0]))
-        console.log('cd', call.parent.kind)
-        console.log(/*checker.getTypeAtLocation*/(call.getChildren()[0]))
+        return checker.getTypeAtLocation((call.parent.parent as ts.NodeWithTypeArguments).typeArguments?.[0]!)
 
-        // const sym = checker.getTypeAtLocation((call.parent).parent).getSymbol()?.members?.get('ResponseType' as any)
-        // const v3 = checker.getTypeAtLocation(call.parent.parent)
-        //const v2 = sym.
-        ///console.log(sym)
-        //  console.log('sym', checker.getPropertiesOfType(v3!).find(x => x.escapedName === 'ResponseType')?.valueDeclaration.type)
-        //checker.symbolToExpression(sym.getSymbol())
-        //const x = (checker.getTypeAtLocation(call.parent).getSymbol()?.valueDeclaration as any).typeParameters[0] as ts.Node
-        //console.log(checker.getTypeAtLocation(x))
       }
-      return 123
+      return null
 
       function findCall(node: ts.Node): ts.Identifier | undefined {
         return node.forEachChild(child => {
