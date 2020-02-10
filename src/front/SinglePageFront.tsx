@@ -20,7 +20,7 @@ export default function SinglePageFront({ analysis }: Props) {
       </head>
       <body>
         <Layout
-          navbar={<NavBar analysis={analysis} />}
+          navbar={<NavBar analysis={analysis} title={pageTitle} />}
           content={
             <>
               <h1>{pageTitle}</h1>
