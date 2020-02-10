@@ -1,6 +1,7 @@
 import { setPapudocHandler } from "./papudoc";
 import * as ts from "typescript";
 import formatType from "./typeFormatter";
+import Description from "./front/ApiView/Description";
 
 const tsConfigFilename = __dirname + "/../tsconfig.json"; // TODO: find out based on source file
 
@@ -20,6 +21,7 @@ export interface AnalyzedAPI {
   method: string;
   checker: ts.TypeChecker;
   parameterDescriptions: Map<string, string | undefined>
+  description?: string
 }
 
 export function analyze(filename: string) {
@@ -72,7 +74,8 @@ export function analyze(filename: string) {
           body: bodyType ? formatType(checker, bodyType) : "unknown",
           method: singleAPI.route.method,
           checker,
-          parameterDescriptions: getParameterDescriptions(v)
+          parameterDescriptions: getParameterDescriptions(v),
+          description: v.getJsDocTags().find(tag => tag.name === 'description')?.text
         };
         return api;
       }

@@ -17,8 +17,9 @@ const api = {
   //testGet: decl.declareGetAPI('/test-get').response<{ key: string, value: number }>(),
 
   /** 
+   * @description This API does a lot of things, none of which are useful.
    * @param id This is the id for the thing 
-  * @param gamma is also kinda cool  
+  *  @param gamma is also kinda cool  
   * */
   testGet: decl
     .declareGetAPI("/test-get/:id")
