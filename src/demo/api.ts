@@ -13,8 +13,10 @@ enum MyEnum {
   gamma
 }
 const api = {
-  //testGet: decl.declareGetAPI('/test-get').response<string[]>(),
-  //testGet: decl.declareGetAPI('/test-get').response<{ key: string, value: number }>(),
+  testGet1: decl.declareGetAPI('/test-get').response<string[]>(),
+  nested: {
+    testGet2: decl.declareGetAPI('/test-get').response<{ key: string, value: number }>(),
+  },
 
   /** 
    * @description This API does a lot of things, none of which are useful.
