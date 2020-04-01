@@ -5,6 +5,7 @@ const decl = new APIDeclaration();
 
 interface InterfaceHere {
   key: string;
+  thisIsInterfaceHere: boolean
 }
 
 enum MyEnum {
@@ -23,7 +24,7 @@ const api = {
    * @param id This is the id for the thing 
   *  @param gamma is also kinda cool  
   * */
-  testGet: decl
+  testGet3: decl
     .declareGetAPI("/test-get/:id")
     .params([
       "id",

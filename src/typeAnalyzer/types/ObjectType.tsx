@@ -1,8 +1,9 @@
-import TsType, { Complexity, ReferencePreference } from '../TsType'
+import TsType, { Complexity, RenderContext } from '../TsType'
 import ts from 'typescript'
-import { AnalyzeTypeFn } from '../typeAnalyzer'
+import { AnalyserContext } from '../typeAnalyzer'
 import React from 'react'
 import compact from 'lodash/compact'
+import MemberTable from '../../front/ApiView/MemberTable'
 
 interface Property {
   name: string
@@ -14,18 +15,18 @@ interface Property {
 export default class ObjectType extends TsType {
   private properties: Property[] = []
 
-  constructor(type: ts.Type, checker: ts.TypeChecker, analyzeType: AnalyzeTypeFn) {
-    super(type)
+  constructor(type: ts.Type, contextualName: string[], ctx: AnalyserContext) {
+    super(contextualName, type)
     this.properties = compact(
       type.getProperties().map((member) => {
-        const valueType = checker.getTypeAtLocation(
+        const valueType = ctx.checker.getTypeAtLocation(
           (member as any).syntheticOrigin?.valueDeclaration || member.valueDeclaration
         )
         const description = member.getJsDocTags().find((tag) => tag.name === 'description')?.text
         if (member.flags & ts.SymbolFlags.Method) return null
         return {
           name: member.name,
-          type: analyzeType(valueType, checker),
+          type: ctx.analyse([...contextualName, member.name], valueType),
           required: !(member.flags & ts.SymbolFlags.Optional),
           description,
         }
@@ -37,81 +38,27 @@ export default class ObjectType extends TsType {
     return Complexity.Complex
   }
 
-  toReact(
-    referencePreference: ReferencePreference,
-    renderLink: (toType: TsType, context: string[]) => React.ReactNode,
-    context: string[]
-  ) {}
-
-  toTypeString(
-    referencePreference: ReferencePreference,
-    createReference: (toType: TsType, context: string[]) => void,
-    context: string[]
-  ): string {}
-}
-
-/*const { type, isTopLevel, containingType, contextName } = props;
-  const [hash, setHash] = useState<null | { label: string; hash: string }>(
-    null
-  );
-  const namedTypes = useContext(NamedTypesContext);
-
-  if (type.getSymbol()?.name === "Array") return <TypeArray {...props} />;
-  const checker = useChecker();
-  const name = type.symbol?.name;
-  const hasName = name && name !== "__type";
-
-  useEffect(() => {
-    if (!isTopLevel) {
-      setHash(
-        namedTypes.addType(
-          type,
-          hasName ? name : null,
-          contextName,
-          containingType
-        )
-      );
-    }
-  }, [isTopLevel]);
-
-  if (!isTopLevel) {
+  toReact(ctx: RenderContext) {
     return (
       <div>
-        <div>Object</div>
-        <div>See: <a href={"#" + hash?.hash}>{hash?.label}</a></div>
+        <p>An object with the following fields:</p>
+        <MemberTable members={this.properties} renderType={(type) => ctx.renderNestedTypeReact(type)} />
       </div>
-    );
+    )
   }
 
-  const members = compact(
-    type.getProperties().map(member => {
-      const valueType = checker.getTypeAtLocation(
-        (member as any).syntheticOrigin?.valueDeclaration ||
-        member.valueDeclaration
-      );
-      const description = member
-        .getJsDocTags()
-        .find(tag => tag.name === "description")?.text;
-      if (member.flags & ts.SymbolFlags.Method) return null;
-      return {
-        name: member.name,
-        type: (
-          <TypeRenderer
-            type={valueType}
-            isTopLevel={false}
-            containingType={type}
-            contextName={[...props.contextName, member.name]}
-          />
-        ),
-        required: !(member.flags & ts.SymbolFlags.Optional),
-        description
-      };
-    })
-  );
+  toTypeString(ctx: RenderContext): string {
+    return `{ ${this.properties
+      .map((property) => {
+        const desc = property.description ? `/* @description ${property.description} */` : ''
+        const opt = property.required ? '' : '?'
+        return `${desc}${propName(property.name)}: ${ctx.renderNestedTypeString(property.type)}${opt}`
+      })
+      .join(', ')} }`
 
-  return (
-    <div>
-      <p>An object with the following fields:</p>
-      <MemberTable members={members} />
-    </div>
-  );*/
+    function propName(plainName: string) {
+      if (plainName.match(/^[a-zA-Z0-9_]$/)) return plainName
+      return `"${plainName.replace(/"/g, '\\"')}"`
+    }
+  }
+}

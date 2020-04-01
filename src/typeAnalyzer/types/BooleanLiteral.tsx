@@ -1,12 +1,13 @@
-import TsType, {Complexity} from '../TsType'
+import TsType, { Complexity } from '../TsType'
 import ts from 'typescript'
 import React from 'react'
+import { AnalyserContext } from '../typeAnalyzer'
 
 export default class BooleanLiteral extends TsType {
   private literalValue: boolean
 
-  constructor(type: ts.Type, checker: ts.TypeChecker) {
-    super(type)
+  constructor(type: ts.Type, { checker }: AnalyserContext) {
+    super([], type)
     this.literalValue = checker.typeToString(type) === 'true'
   }
 
