@@ -1,8 +1,11 @@
 import { setPapudocHandler } from './papudoc'
 import * as ts from 'typescript'
-import formatType from './typeFormatter'
+import formatType, { ExposeTypesAs } from './typeFormatter'
+import TsType from './typeAnalyzer/TsType'
+import { prepareTsTypeConverter } from './typeAnalyzer/typeAnalyzer'
 import { PapudocConfig } from './config'
 import getRequireableFilename from './util/getRequirableFilename'
+
 
 export type Analysis = ReturnType<typeof analyze>
 
@@ -16,7 +19,10 @@ export interface AnalyzedAPI {
   body: string
   response: string
   responseType: ts.Type | null
+  responseTsType: TsType | null
+
   bodyType: ts.Type | null
+  bodyTsType: TsType | null
   method: string
   checker: ts.TypeChecker
   parameterDescriptions: Map<string, string | undefined>
@@ -46,6 +52,8 @@ export function analyze(config: PapudocConfig, filename: string) {
     if (!call) throw new Error('Failed to find papudoc call')
 
     const checker = program.getTypeChecker()
+    const typeConverter = prepareTsTypeConverter(checker)
+
     const apiData: Array<AnalyzedAPI> = [...findAPIs(api)].map(
       (singleAPI): AnalyzedAPI => {
         /*ptr(call.arguments[0])
@@ -57,17 +65,21 @@ export function analyze(config: PapudocConfig, filename: string) {
           })
         }*/
         const v = findValueAtPath(call.arguments[0], singleAPI.path)
-        if (!v) throw new Error('Failed to find value: ' + singleAPI.path.join('.'))
+          if (!v) throw new Error('Failed to find value: ' + singleAPI.path.join('.'))
         const responseType = getTypeParameterFor(v, 'response')
         const bodyType = getTypeParameterFor(v, 'body')
+        const bodyName = [...singleAPI.path, 'body']
+        const responseName = [...singleAPI.path, 'response']
         const api: AnalyzedAPI = {
           api: singleAPI,
           url: getURL(singleAPI.route),
           ...singleAPI.route.apiUrlParameters,
           responseType,
+          responseTsType: responseType && typeConverter(responseName, responseType),
           bodyType,
-          response: responseType ? formatType(checker, responseType) : 'unknown',
-          body: bodyType ? formatType(checker, bodyType) : 'unknown',
+          bodyTsType: bodyType && typeConverter(bodyName, bodyType),
+          response: responseType ? formatType(responseName, checker, responseType, ExposeTypesAs.Inline) : 'unknown',
+          body: bodyType ? formatType(bodyName, checker, bodyType, ExposeTypesAs.Inline) : 'unknown',
           method: singleAPI.route.method,
           checker,
           parameterDescriptions: getParameterDescriptions(v),
@@ -131,20 +143,11 @@ export function analyze(config: PapudocConfig, filename: string) {
     }
 
     function findValueAtPath(node: ts.Node, path: string[]): ts.Symbol | null {
-      //console.log('fvap', node, path)
       const members = checker.getTypeAtLocation(node).getProperties()
-      console.log('X0', path)
       if (!members) return null
       const member = members.find(member => member.escapedName === path[0])
-      /*if (path.length === 1) {
-        //const props = (checker as any).getTypeAtLocation(node).getSymbol()?.valueDeclaration.properties
-        console.log('X1', path, (checker ).getTypeAtLocation(node).getProperties())
-        //console.log('XZ', checker.getTypeAtLocation(props[0]))
-      }*/
       if (!member) return null
-      console.log('X2', path)
       if (path.length === 1) return member
-      console.log('X3', path)
       return findValueAtPath(member.valueDeclaration, path.slice(1))
     }
 

@@ -1,22 +1,17 @@
-import React from "react";
-import { AnalyzedAPI } from "../../analyzer";
-import Section from "./Section";
-import TypeRenderer from "../TypeRenderer/TypeRenderer";
+import React from 'react'
+import { AnalyzedAPI } from '../../analyzer'
+import Section from './Section'
+import TypeRenderer from '../TypeRenderer/TypeRenderer'
 
 interface Props {
-  api: AnalyzedAPI;
+  api: AnalyzedAPI
 }
 
 export default function Response({ api }: Props) {
-  if (!api.responseType) return null;
+  if (!api.responseTsType) return null
   return (
-    <Section heading={"Response"}>
-      <TypeRenderer
-        type={api.responseType}
-        isTopLevel={true}
-        contextName={["response"]}
-        containingType={null}
-      />
+    <Section heading={'Response'}>
+      <TypeRenderer type={api.responseTsType} />
     </Section>
-  );
+  )
 }

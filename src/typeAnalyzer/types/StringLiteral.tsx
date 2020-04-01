@@ -3,6 +3,12 @@ import ts from 'typescript'
 import React from 'react'
 
 export default class StringLiteral extends TsType {
+  constructor(type: ts.Type) {
+    super([], type);
+
+  }
+
+
   private get literalValue() {
     return (this.type as ts.LiteralType).value
   }

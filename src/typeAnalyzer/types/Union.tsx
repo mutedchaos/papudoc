@@ -1,34 +1,29 @@
-import TsType, { Complexity, ReferencePreference } from '../TsType'
+import TsType, { Complexity, RenderContext } from '../TsType'
 import React from 'react'
 import ts from 'typescript'
-import { AnalyzeTypeFn } from '../typeAnalyzer'
+import { AnalyserContext } from '../typeAnalyzer'
 
 export default class Union extends TsType {
   private innerTypes: TsType[]
 
-  constructor(type: ts.Type, checker: ts.TypeChecker, analyzeType: AnalyzeTypeFn) {
-    super(type)
-    this.innerTypes = (type as ts.UnionOrIntersectionType).types.map((type) => analyzeType(type, checker))
+  constructor(type: ts.Type, contextualName: string[], ctx: AnalyserContext) {
+    super(contextualName, type)
+    this.innerTypes = (type as ts.UnionOrIntersectionType).types.map((type, i) =>
+      ctx.analyse([...contextualName, i.toString()], type)
+    )
   }
 
   get complexity(): Complexity {
     return Complexity.Expression
   }
 
-  toReact(
-    referencePreference: ReferencePreference,
-    renderLink: (toType: TsType, context: string[]) => React.ReactNode,
-    context: string[]
-  ) {
+  toReact(ctx: RenderContext) {
     return (
       <div>
         <div>One of the following</div>
         <ul>
           {this.innerTypes.map((type, i) => {
-            const inner = type.toReact(this.getNestedReferencePreference(referencePreference), renderLink, [
-              ...context,
-              i.toString(),
-            ])
+            const inner = ctx.renderNestedTypeReact(type)
             return <li key={i}>{inner}</li>
           })}
         </ul>
@@ -36,23 +31,13 @@ export default class Union extends TsType {
     )
   }
 
-  toTypeString(
-    referencePreference: ReferencePreference,
-    createReference: (toType: TsType, context: string[]) => void,
-    context: string[]
-  ): string {
-    const nestedPreference = this.getNestedReferencePreference(referencePreference)
-    const renderInner = (inner: TsType, i: number) => {
-      return inner.toTypeString(nestedPreference, createReference, [...context, i.toString()])
-    }
-    const needsParens = (inner: TsType) =>
-      inner.complexity === Complexity.Expression ||
-      (inner.complexity === Complexity.Complex && nestedPreference < ReferencePreference.Complex)
+  toTypeString(ctx: RenderContext): string {
+    const needsParens = (inner: string) => !inner.match(/^[a-zA-Z0-9_]$/)
 
     return this.innerTypes
-      .map((innerType, i) => {
-        const inner = renderInner(innerType, i)
-        return needsParens(innerType) ? `(${inner})` : inner
+      .map((innerType) => {
+        const inner = ctx.renderNestedTypeString(innerType)
+        return needsParens(inner) ? `(${inner})` : inner
       })
       .join(' | ')
   }

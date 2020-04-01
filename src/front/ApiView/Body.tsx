@@ -8,15 +8,10 @@ interface Props {
 }
 
 export default function Body({ api }: Props) {
-  if (!api.bodyType) return null;
+  if (!api.bodyTsType) return null;
   return (
-    <Section heading={"Body"}>
-      <TypeRenderer
-        type={api.bodyType}
-        isTopLevel={true}
-        contextName={["body"]}
-        containingType={null}
-      />
+    <Section heading={'Body'}>
+      <TypeRenderer type={api.bodyTsType} />
     </Section>
-  );
+  )
 }
