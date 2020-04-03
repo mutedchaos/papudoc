@@ -43,7 +43,7 @@ export function loadConfig(filename?: string): PapudocConfig {
     return { ...exported, baseDir }
   }
 
-  throw new Error('Unknown config extension.')
+  throw new Error('Unknown config extension in ' + actualFilename)
 }
 
 function findConfig(findFrom = process.cwd(), atDepth = 0): string {
