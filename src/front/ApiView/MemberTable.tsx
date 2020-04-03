@@ -1,5 +1,4 @@
-import React, { ReactNode } from "react";
-import Description from "./Description";
+import React, {ReactNode} from "react";
 import MemberTableTheme from "./MemberTableTheme";
 import styled from "styled-components";
 

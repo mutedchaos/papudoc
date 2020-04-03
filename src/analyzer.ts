@@ -1,9 +1,8 @@
 import { setPapudocHandler } from "./papudoc";
 import * as ts from "typescript";
 import formatType from "./typeFormatter";
-import Description from "./front/ApiView/Description";
-
-const tsConfigFilename = __dirname + "/../tsconfig.json"; // TODO: find out based on source file
+import { PapudocConfig } from "./config";
+import getRequireableFilename from "./util/getRequirableFilename";
 
 export type Analysis = ReturnType<typeof analyze>;
 
@@ -20,15 +19,16 @@ export interface AnalyzedAPI {
   bodyType: ts.Type | null;
   method: string;
   checker: ts.TypeChecker;
-  parameterDescriptions: Map<string, string | undefined>
-  description?: string
+  parameterDescriptions: Map<string, string | undefined>;
+  description?: string;
 }
 
-export function analyze(filename: string) {
+export function analyze(config: PapudocConfig, filename: string) {
   let papudocIndex = -1;
   setPapudocHandler(handleAPI);
+  const tsconfig = getTsConfigFilename(config);
   const compilerOptions: ts.CompilerOptions = ts.convertCompilerOptionsFromJson(
-    require(tsConfigFilename),
+    require(tsconfig),
     __dirname + "/.."
   ).options;
   const program = ts.createProgram([filename], compilerOptions);
@@ -75,7 +75,9 @@ export function analyze(filename: string) {
           method: singleAPI.route.method,
           checker,
           parameterDescriptions: getParameterDescriptions(v),
-          description: v.getJsDocTags().find(tag => tag.name === 'description')?.text
+          description: v
+            .getJsDocTags()
+            .find((tag) => tag.name === "description")?.text,
         };
         return api;
       }
@@ -98,12 +100,12 @@ export function analyze(filename: string) {
 
     function findPapudocCall(targetIndex: number) {
       let atIndex = -1;
-      return ts.forEachChild(file!, node => checkNode(node));
+      return ts.forEachChild(file!, (node) => checkNode(node));
 
       function checkNode(node: ts.Node): ts.CallExpression | undefined {
         if (ts.isCallExpression(node)) {
           const identifier = node.forEachChild(
-            child => ts.isIdentifier(child) && child
+            (child) => ts.isIdentifier(child) && child
           );
           if (identifier && identifier?.escapedText === "papudoc") {
             ++atIndex;
@@ -111,28 +113,36 @@ export function analyze(filename: string) {
           }
         }
 
-        return node.forEachChild(node => checkNode(node));
+        return node.forEachChild((node) => checkNode(node));
       }
     }
 
     function getParameterDescriptions(symbol: ts.Symbol) {
+      const paramTags = symbol
+        .getJsDocTags()
+        .filter((tag) => tag.name === "param");
 
-      const paramTags = symbol.getJsDocTags().filter(tag => tag.name === 'param')
+      const entries = paramTags.map((p) => {
+        const [, key, description] = p.text?.match(/^([^\s]+) (.+)/) || [
+          ,
+          "",
+          "",
+        ];
+        return [key!, description] as const;
+      });
 
-      const entries = paramTags.map(p => {
-        const [, key, description] = p.text?.match(/^([^\s]+) (.+)/) || [, '', '']
-        return [key!, description] as const
-      })
-
-      return new Map<string, string | undefined>(entries)
+      return new Map<string, string | undefined>(entries);
     }
 
-    function findNamedCall(node: ts.Node, name: string): ts.Identifier | undefined {
-      return node.forEachChild(child => {
+    function findNamedCall(
+      node: ts.Node,
+      name: string
+    ): ts.Identifier | undefined {
+      return node.forEachChild((child) => {
         if (ts.isIdentifier(child)) {
           if (child.escapedText === name) return child;
         } else {
-          return findNamedCall(child, name)
+          return findNamedCall(child, name);
         }
       });
     }
@@ -147,8 +157,6 @@ export function analyze(filename: string) {
     }
 
     function getTypeParameterFor(symbol: ts.Symbol, forType: string) {
-
-
       const call = findNamedCall(symbol.valueDeclaration, forType);
       if (call) {
         return checker.getTypeAtLocation(
@@ -156,8 +164,6 @@ export function analyze(filename: string) {
         );
       }
       return null;
-
-
     }
   }
 }
@@ -183,10 +189,17 @@ function* findAPIs(
     if (value?.apiUrlParameters) {
       yield {
         path: [...currentPath, key],
-        route: value
+        route: value,
       };
     } else if (typeof value === "object") {
       yield* findAPIs(value, [...currentPath, key]);
     }
   }
+}
+
+function getTsConfigFilename(config: PapudocConfig) {
+  if (config.tsConfigFilename) {
+    return getRequireableFilename(config.baseDir!, config.tsConfigFilename);
+  }
+  return getRequireableFilename(config.baseDir!, "tsconfig.json");
 }

@@ -46,7 +46,7 @@ function prepareEnzyme() {
   function copyProps(src: any, target: any) {
     Object.defineProperties(target, {
       ...Object.getOwnPropertyDescriptors(src),
-      ...Object.getOwnPropertyDescriptors(target)
+      ...Object.getOwnPropertyDescriptors(target),
     });
   }
 
@@ -56,14 +56,14 @@ function prepareEnzyme() {
   global.document = window.document;
   // @ts-ignore
   global.navigator = {
-    userAgent: "node.js"
+    userAgent: "node.js",
   };
   // @ts-ignore
-  global.requestAnimationFrame = function(callback) {
+  global.requestAnimationFrame = function (callback) {
     return setTimeout(callback, 0);
   };
   // @ts-ignore
-  global.cancelAnimationFrame = function(id) {
+  global.cancelAnimationFrame = function (id) {
     clearTimeout(id);
   };
   copyProps(window, global);

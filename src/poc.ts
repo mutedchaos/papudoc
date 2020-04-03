@@ -1,4 +1,11 @@
-import { analyze } from "./analyzer";
-import generateFront from "./generateFront";
+import { analyze } from './analyzer'
+import generateFront from './generateFront'
+import { PapudocConfig } from './config'
 
-generateFront(__dirname + "/../output", analyze(__dirname + "/demo/api.ts"));
+const filename = __dirname + '/demo/api.ts'
+const config: PapudocConfig = {
+  sourceFiles: [filename],
+  baseDir: __dirname + '/..',
+  outDir: 'output',
+}
+generateFront(__dirname + '/../output', analyze(config, filename))

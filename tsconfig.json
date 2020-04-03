@@ -11,7 +11,7 @@
     "resolveJsonModule": true,
     "declaration": true,
     "jsx": "react",
-    "outDir": "build",
+    "outDir": "dist",
     "lib": [
       "es2016",
       "es2017"
