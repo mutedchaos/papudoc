@@ -6,11 +6,12 @@ import BooleanLiteral from './types/BooleanLiteral'
 import Union from './types/Union'
 import ObjectType from './types/ObjectType'
 import ArrayType from './types/ArrayType'
+import TypeCache from './TypeCache'
 
 export interface AnalyserContext {
   analyse(this: AnalyserContext, contextualName: string[], type: ts.Type): TsType
   checker: ts.TypeChecker
-  typeMap: Map<ts.Type, TsType>
+  typeMap: TypeCache
   typeStack: Array<ts.Type>
 }
 export type AnalyzeTypeFn = (type: ts.Type, checked: ts.TypeChecker) => TsType
@@ -21,7 +22,7 @@ export default function analyzeType(contextualName: string[], type: ts.Type, che
       return analyzeTypeInternal(this, contextualName, type)
     },
     checker,
-    typeMap: new Map(),
+    typeMap: new TypeCache(),
     typeStack: [],
   }
   return ctx.analyse(contextualName, type)
@@ -34,7 +35,7 @@ export function prepareTsTypeConverter(checker: ts.TypeChecker) {
     },
     checker,
     typeStack: [],
-    typeMap: new Map(),
+    typeMap: new TypeCache(),
   }
   return (contextualName: string[], type: ts.Type) => analyzeTypeInternal(ctx, contextualName, type)
 }
@@ -45,7 +46,7 @@ export function analyzeTypeInternal(outerCtx: AnalyserContext, contextualName: s
     ...outerCtx,
     typeStack: [...outerCtx.typeStack, type],
   }
-  let cached = ctx.typeMap.get(type)
+  let cached = ctx.typeMap.get([...outerCtx.typeStack, type])
   if (cached) {
     cached.refCount++
     cached.contextualNames.push(contextualName)
@@ -81,9 +82,9 @@ export function analyzeTypeInternal(outerCtx: AnalyserContext, contextualName: s
     [ts.TypeFlags.Intersection, () => new ObjectType(type, contextualName, ctx)],
   ])
 
-  console.log('Handling', type.getSymbol()?.name)
+  //console.log('Handling', type.getSymbol()?.name)
   const handled = handle()
-  ctx.typeMap.set(type, handled)
+  ctx.typeMap.set([...ctx.typeStack, type], handled)
   return handled
 
   function handle() {
@@ -92,6 +93,8 @@ export function analyzeTypeInternal(outerCtx: AnalyserContext, contextualName: s
       if (typeof handler === 'string') return new NamedBuiltinType(type, handler)
       return handler(type)
     } else {
+      throw new Error('stahp')
+      console.log('FLAGS', type.flags)
       return new NamedBuiltinType(type, 'unsupported-by-papudoc')
     }
   }

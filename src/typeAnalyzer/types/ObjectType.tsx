@@ -29,7 +29,7 @@ export default class ObjectType extends TsType {
         let memberType = valueType
 
         if (valueType.flags & ts.SymbolFlags.TypeParameter) {
-          const foundResolvedType = findResolvedType(ctx, valueType)
+          const foundResolvedType = findResolvedType(ctx, valueType, false)
 
           if (!foundResolvedType) {
             findResolvedType(ctx, valueType, true)
@@ -80,7 +80,7 @@ export default class ObjectType extends TsType {
 function getTypeParameterIndex(type: ts.Type, name: string) {
   const memberIterrator = type.getSymbol()?.members!.values()
   for (let i = 0; ; ++i) {
-    const val = memberIterrator.next()
+    const val = memberIterrator!.next()
     if (val.done) return -1
     if (val.value.name === name) return i
   }
@@ -92,24 +92,23 @@ function findResolvedType(ctx: AnalyserContext, referenceType: ts.Type, debug = 
   const refSymbol = referenceType.getSymbol()
   if (!refSymbol) return null
   if (debug)
-    console.log(
-      'frt',
-      containingType.getSymbol()?.name,
-      refSymbol.name,
-      containingType.getSymbol()?.members?.keys()
-    )
+    console.log('frt', containingType.getSymbol()?.name, refSymbol.name, containingType.getSymbol()?.members?.keys())
 
   const containingSymbol = containingType.getSymbol()!
   const member = containingSymbol?.members!.get(refSymbol.name as any)
   if (member === refSymbol) {
     const typeParameterIndex = getTypeParameterIndex(containingType, refSymbol.name)
     if (debug) console.log('Found match')
-    return (containingType as any).resolvedTypeArguments[typeParameterIndex]
+    const match = (containingType as any).resolvedTypeArguments[typeParameterIndex]
+    if (match.flags & ts.SymbolFlags.TypeParameter) {
+      return findResolvedType(ctx, match, debug)
+    }
+    return match
   } else {
     if (ctx.typeStack.length === 1) {
       if (debug) {
-          console.log('Empty stack')
-          console.log(containingType)
+        console.log('Empty stack')
+        console.log(containingType)
       }
       return null
     }

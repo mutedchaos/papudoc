@@ -156,8 +156,8 @@ export function analyze(config: PapudocConfig, filename: string) {
       if (call) {
         const x = (call.parent.parent as ts.NodeWithTypeArguments)
 
-        console.log('x',  call.parent.parent)
-        throw new Error('whee')
+       //console.log('x',  call.parent.parent)
+       // throw new Error('whee')
         return checker.getTypeAtLocation(x.typeArguments?.[0]!)
       }
       return null

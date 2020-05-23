@@ -42,7 +42,7 @@
     "papupata": "^1.5.0",
     "prettier": "^2.0.2",
     "serve": "^11.3.0",
-    "typescript": "^3.7.5"
+    "typescript": "^3.9.3"
   },
   "peerDependencies": {
     "papupata": "*",
