@@ -6,6 +6,8 @@ export type CreateReference = (toType: TSType, context: string[]) => void
 
 let unknownCounter = 0
 
+const genericNames = ['__type', '__object']
+
 export enum Complexity {
   Trivial,
   Expression,
@@ -36,7 +38,7 @@ export default abstract class TSType {
   public get name(): string {
     if (this.nameOverride) return this.nameOverride
     const naiveName = this.type.getSymbol()?.name
-    if (naiveName && naiveName !== '__type') return naiveName
+    if (naiveName && !genericNames.includes(naiveName)) return naiveName
     if (this.contextualNames.length) {
       return this.contextualNames.map((n) => n.join('_')).join('_')
     }

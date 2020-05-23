@@ -154,7 +154,11 @@ export function analyze(config: PapudocConfig, filename: string) {
     function getTypeParameterFor(symbol: ts.Symbol, forType: string) {
       const call = findNamedCall(symbol.valueDeclaration, forType)
       if (call) {
-        return checker.getTypeAtLocation((call.parent.parent as ts.NodeWithTypeArguments).typeArguments?.[0]!)
+        const x = (call.parent.parent as ts.NodeWithTypeArguments)
+
+        console.log('x',  call.parent.parent)
+        throw new Error('whee')
+        return checker.getTypeAtLocation(x.typeArguments?.[0]!)
       }
       return null
     }

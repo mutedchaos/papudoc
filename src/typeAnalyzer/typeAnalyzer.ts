@@ -11,16 +11,18 @@ export interface AnalyserContext {
   analyse(this: AnalyserContext, contextualName: string[], type: ts.Type): TsType
   checker: ts.TypeChecker
   typeMap: Map<ts.Type, TsType>
+  typeStack: Array<ts.Type>
 }
 export type AnalyzeTypeFn = (type: ts.Type, checked: ts.TypeChecker) => TsType
 
 export default function analyzeType(contextualName: string[], type: ts.Type, checker: ts.TypeChecker) {
   const ctx: AnalyserContext = {
     analyse(contextualName: string[], type: ts.Type) {
-      return analyzeTypeInternal(ctx, contextualName, type)
+      return analyzeTypeInternal(this, contextualName, type)
     },
     checker,
     typeMap: new Map(),
+    typeStack: [],
   }
   return ctx.analyse(contextualName, type)
 }
@@ -28,16 +30,21 @@ export default function analyzeType(contextualName: string[], type: ts.Type, che
 export function prepareTsTypeConverter(checker: ts.TypeChecker) {
   const ctx: AnalyserContext = {
     analyse(contextualName: string[], type: ts.Type) {
-      return analyzeTypeInternal(ctx, contextualName, type)
+      return analyzeTypeInternal(this, contextualName, type)
     },
     checker,
+    typeStack: [],
     typeMap: new Map(),
   }
   return (contextualName: string[], type: ts.Type) => analyzeTypeInternal(ctx, contextualName, type)
 }
 
 type CreateTypeObject = (type: ts.Type) => TsType
-export function analyzeTypeInternal(ctx: AnalyserContext, contextualName: string[], type: ts.Type) {
+export function analyzeTypeInternal(outerCtx: AnalyserContext, contextualName: string[], type: ts.Type) {
+  const ctx: AnalyserContext = {
+    ...outerCtx,
+    typeStack: [...outerCtx.typeStack, type],
+  }
   let cached = ctx.typeMap.get(type)
   if (cached) {
     cached.refCount++
@@ -65,7 +72,7 @@ export function analyzeTypeInternal(ctx: AnalyserContext, contextualName: string
     [
       ts.TypeFlags.Object,
       () => {
-        if (type.getSymbol()?.name === 'Array') return new ArrayType(type, contextualName,ctx)
+        if (type.getSymbol()?.name === 'Array') return new ArrayType(type, contextualName, ctx)
         return new ObjectType(type, contextualName, ctx)
       },
     ],
@@ -74,6 +81,7 @@ export function analyzeTypeInternal(ctx: AnalyserContext, contextualName: string
     [ts.TypeFlags.Intersection, () => new ObjectType(type, contextualName, ctx)],
   ])
 
+  console.log('Handling', type.getSymbol()?.name)
   const handled = handle()
   ctx.typeMap.set(type, handled)
   return handled

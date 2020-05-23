@@ -17,10 +17,10 @@
       "es2017"
     ],
     "module": "commonjs",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "incremental": true
   },
   "include": [
     "src/**/*"
-  ],
-  "incremental": true
+  ]
 }

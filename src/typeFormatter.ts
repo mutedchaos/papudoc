@@ -32,6 +32,7 @@ function createStringInlineRenderContext(rootType: TsType): RenderContext {
     useCanonicalNames: false,
     inlineInterfaces: true,
     types: [rootType],
+    linkedTypes: [],
     renderNestedTypeReact: () => {
       throw new Error('React rendering not supported with this context')
     },
@@ -47,6 +48,7 @@ function createStringReferencingRenderContext(rootType: TsType, useCanonicalName
     useCanonicalNames,
     inlineInterfaces: true,
     types: [rootType],
+    linkedTypes: [],
     renderNestedTypeReact: () => {
       throw new Error('React rendering not supported with this context')
     },
