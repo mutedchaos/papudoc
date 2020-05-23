@@ -6,7 +6,6 @@ import { prepareTsTypeConverter } from './typeAnalyzer/typeAnalyzer'
 import { PapudocConfig } from './config'
 import getRequireableFilename from './util/getRequirableFilename'
 
-
 export type Analysis = ReturnType<typeof analyze>
 
 export interface AnalyzedAPI {
@@ -38,7 +37,7 @@ export function analyze(config: PapudocConfig, filename: string) {
   const program = ts.createProgram([filename], compilerOptions)
 
   const file = program.getSourceFile(filename)
-  if (!file) throw new Error('Could not get file')
+  if (!file) throw new Error('Could not get file: ' + filename)
 
   let APIs: AnalyzedAPI[] = []
 
@@ -65,7 +64,7 @@ export function analyze(config: PapudocConfig, filename: string) {
           })
         }*/
         const v = findValueAtPath(call.arguments[0], singleAPI.path)
-          if (!v) throw new Error('Failed to find value: ' + singleAPI.path.join('.'))
+        if (!v) throw new Error('Failed to find value: ' + singleAPI.path.join('.'))
         const responseType = getTypeParameterFor(v, 'response')
         const bodyType = getTypeParameterFor(v, 'body')
         const bodyName = [...singleAPI.path, 'body']
@@ -145,7 +144,7 @@ export function analyze(config: PapudocConfig, filename: string) {
     function findValueAtPath(node: ts.Node, path: string[]): ts.Symbol | null {
       const members = checker.getTypeAtLocation(node).getProperties()
       if (!members) return null
-      const member = members.find(member => member.escapedName === path[0])
+      const member = members.find((member) => member.escapedName === path[0])
       if (!member) return null
       if (path.length === 1) return member
       return findValueAtPath(member.valueDeclaration, path.slice(1))
@@ -154,10 +153,10 @@ export function analyze(config: PapudocConfig, filename: string) {
     function getTypeParameterFor(symbol: ts.Symbol, forType: string) {
       const call = findNamedCall(symbol.valueDeclaration, forType)
       if (call) {
-        const x = (call.parent.parent as ts.NodeWithTypeArguments)
+        const x = call.parent.parent as ts.NodeWithTypeArguments
 
-       //console.log('x',  call.parent.parent)
-       // throw new Error('whee')
+        //console.log('x',  call.parent.parent)
+        // throw new Error('whee')
         return checker.getTypeAtLocation(x.typeArguments?.[0]!)
       }
       return null
@@ -180,6 +179,7 @@ interface API {
 
 function* findAPIs(api: any, currentPath: string[] = []): IterableIterator<API> {
   for (const [key, value] of Object.entries(api) as any[]) {
+    console.log(key, currentPath)
     if (value?.apiUrlParameters) {
       yield {
         path: [...currentPath, key],

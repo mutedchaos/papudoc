@@ -2,7 +2,7 @@ import { loadConfig, PapudocConfig } from './config'
 import generateFront from './generateFront'
 import { Analysis, analyze } from './analyzer'
 import getRequireableFilename from './util/getRequirableFilename'
-import {papudoc as handlePapudoc} from './papudoc'
+import { papudoc as handlePapudoc } from './papudoc'
 
 export function generatePapudoc(configOrConfigFile?: string | PapudocConfig) {
   const config: PapudocConfig =
@@ -13,7 +13,6 @@ export function generatePapudoc(configOrConfigFile?: string | PapudocConfig) {
   )
 
   const analysis = combineAnalysis(analysisSet)
-
   generateFront(config.outDir || './papudoc', analysis)
 }
 

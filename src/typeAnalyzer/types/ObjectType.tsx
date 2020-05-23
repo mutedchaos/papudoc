@@ -1,10 +1,11 @@
 import TsType, { Complexity, RenderContext } from '../TsType'
-import ts from 'typescript'
+import ts, { createImportSpecifier } from 'typescript'
 import { AnalyserContext } from '../typeAnalyzer'
 import React from 'react'
 import compact from 'lodash/compact'
 import MemberTable from '../../front/ApiView/MemberTable'
 import last from 'lodash/last'
+import { type } from 'os'
 
 interface Property {
   name: string
@@ -18,29 +19,46 @@ export default class ObjectType extends TsType {
 
   constructor(type: ts.Type, contextualName: string[], ctx: AnalyserContext) {
     super(contextualName, type)
-
+    const innerCtx = {
+      ...ctx,
+      typeStack: [...ctx.typeStack, type],
+    }
     this.properties = compact(
       type.getProperties().map((member) => {
         const valueType = ctx.checker.getTypeAtLocation(
           (member as any).syntheticOrigin?.valueDeclaration || member.valueDeclaration
         )
+        const memberContext = {
+          ...innerCtx,
+          typeStack: [
+            ...innerCtx.typeStack,
+            {
+              mapper: (member as any).mapper,
+              mapperOnly: true as const,
+            },
+          ],
+        }
         const description = member.getJsDocTags().find((tag) => tag.name === 'description')?.text
         if (member.flags & ts.SymbolFlags.Method) return null
         let memberType = valueType
 
         if (valueType.flags & ts.SymbolFlags.TypeParameter) {
-          const foundResolvedType = findResolvedType(ctx, valueType, false)
+          const foundResolvedType = findResolvedTypeAutonest(memberContext, valueType, false)
 
           if (!foundResolvedType) {
-            findResolvedType(ctx, valueType, true)
+            console.log('CON', contextualName)
+            //console.log(type.aliasTypeArguments[0].target.typeParameters)
+            //console.log(ctx.typeStack[ctx.typeStack.length - 3].resolvedProperties)
+            findResolvedTypeAutonest(memberContext, valueType, true)
+            console.log(member.name, ctx.typeStack[0].types[0])
             throw new Error('stopping at ' + contextualName.join('.') + type.getSymbol()?.name)
           }
-          memberType = foundResolvedType
+          memberType = foundResolvedType || valueType
         }
 
         return {
           name: member.name,
-          type: ctx.analyse([...contextualName, member.name], memberType),
+          type: memberContext.analyse([...contextualName, member.name], memberType),
           required: !(member.flags & ts.SymbolFlags.Optional),
           description,
         }
@@ -86,18 +104,46 @@ function getTypeParameterIndex(type: ts.Type, name: string) {
   }
 }
 
+export function findResolvedTypeAutonest(ctx: AnalyserContext, referenceType: ts.Type, debug = false): ts.Type | null {
+  const found = findResolvedType(ctx, referenceType, debug)
+  if (!found) return found
+
+  if (found.flags & ts.SymbolFlags.TypeParameter) {
+    console.log('AAUTONEST')
+    return findResolvedTypeAutonest(ctx, found, debug)
+  }
+  return found
+}
+
 function findResolvedType(ctx: AnalyserContext, referenceType: ts.Type, debug = false): ts.Type | null {
-  const containingType = last(ctx.typeStack)
-  if (!containingType) return null
+  const lastStackEntry = last(ctx.typeStack)
+
+  if (!lastStackEntry) return null
+  const mapperType = 'mapperOnly' in lastStackEntry ? lastStackEntry : null
+  const containingType = !('mapperOnly' in lastStackEntry) ? lastStackEntry : null
+
+  for (const { sources, targets } of getMappers(mapperType || containingType, debug)) {
+    const index = sources.indexOf(referenceType)
+    if (debug) {
+      console.log('i', index, referenceType.getSymbol()?.name)
+    }
+    if (index !== -1) return targets[index]
+  }
   const refSymbol = referenceType.getSymbol()
   if (!refSymbol) return null
   if (debug)
-    console.log('frt', containingType.getSymbol()?.name, refSymbol.name, containingType.getSymbol()?.members?.keys())
+    console.log(
+      'frt',
+      mapperType?.mapperOnly,
+      containingType?.getSymbol()?.name,
+      refSymbol.name,
+      '[TS: ' + ctx.typeStack.map((t) => (t as any).getSymbol?.()?.name).join(':') + ']'
+    )
 
-  const containingSymbol = containingType.getSymbol()!
+  const containingSymbol = containingType?.getSymbol()!
   const member = containingSymbol?.members!.get(refSymbol.name as any)
   if (member === refSymbol) {
-    const typeParameterIndex = getTypeParameterIndex(containingType, refSymbol.name)
+    const typeParameterIndex = getTypeParameterIndex(containingType!, refSymbol.name)
     if (debug) console.log('Found match')
     const match = (containingType as any).resolvedTypeArguments[typeParameterIndex]
     if (match.flags & ts.SymbolFlags.TypeParameter) {
@@ -105,15 +151,33 @@ function findResolvedType(ctx: AnalyserContext, referenceType: ts.Type, debug = 
     }
     return match
   } else {
+    if (containingType?.getBaseTypes()?.length) {
+      for (const bt of containingType.getBaseTypes()!) {
+        const subres = findResolvedType(
+          {
+            ...ctx,
+            typeStack: [...ctx.typeStack.slice(0, ctx.typeStack.length - 1), bt],
+          },
+          referenceType,
+          debug
+        )
+        if (subres) return subres
+      }
+    }
     if (ctx.typeStack.length === 1) {
       if (debug) {
         console.log('Empty stack')
-        console.log(containingType)
+        //console.log(containingType)
+        //console.log('mapper', (containingType as any).mapper.mapper1)
       }
       return null
     }
-    if (debug) console.log('Going in deeper')
-    return findResolvedType(
+    if (debug) {
+      //console.log(containingType)
+      //throw new Error('waitamime')
+      console.log('Going in deeper')
+    }
+    const deeper = findResolvedType(
       {
         ...ctx,
         typeStack: ctx.typeStack.slice(0, ctx.typeStack.length - 1),
@@ -121,8 +185,88 @@ function findResolvedType(ctx: AnalyserContext, referenceType: ts.Type, debug = 
       referenceType,
       debug
     )
+    if (deeper) return deeper
+
+    if (containingType) {
+      for (let aliasTypeArgument of containingType.aliasTypeArguments || []) {
+        const asAny: any = aliasTypeArgument
+
+        const index = asAny.target.typeParameters.indexOf(referenceType)
+        //  console.log(',,,', index)
+        if (index !== -1) {
+          return asAny.resolvedTypeArguments[index]
+        }
+        const nest2 = findResolvedType(
+          { ...ctx, typeStack: [...ctx.typeStack.slice(0, ctx.typeStack.length - 1), asAny] },
+          referenceType,
+          debug
+        )
+        if (nest2) return nest2
+      }
+      const containingTypeAny = containingType as any
+      if (containingTypeAny.types) {
+        for (const type of containingTypeAny.types) {
+          const nest1 = findResolvedType(
+            { ...ctx, typeStack: [...ctx.typeStack.slice(0, ctx.typeStack.length - 1), type] },
+            referenceType,
+            debug
+          )
+          if (nest1) return nest1
+        }
+      }
+    }
+    //  console.log('vvv')
+    return null
+
+    //console.log(type.aliasTypeArguments[0].target.typeParameters)
+    //console.log(type.aliasTypeArguments[0].resolvedTypeArguments)
   }
 }
 /*
 const typeParameterIndex = getTypeParameterIndex(type, valueType)
 //(type as any).resolvedTypeArguments[typeParameterIndex]*/
+
+function* getMappers(
+  type: ts.Type | { mapperOnly: true } | null,
+  debug: boolean
+): IterableIterator<ReturnType<typeof convertMapper>> {
+  if (!type) {
+    return null
+  }
+  const actual = type as any
+  //if (debug) console.log('Z', actual.mapper || actual.mapper1 || actual.source || actual.sources)
+
+  if (actual.mapper) {
+    yield* getMappers(actual.mapper, debug)
+    return
+  }
+
+  if (actual.source || actual.sources) {
+    yield convertMapper(actual)
+  }
+
+  let index = 1
+  while (actual['mapper' + index]) {
+    const mapper = actual['mapper' + index]
+    if (mapper.source || mapper.sources) {
+      if (debug) console.log('DI', index)
+      yield convertMapper(mapper)
+    } else if (mapper.mapper1 || mapper.mapper) {
+      if (debug) console.log('DB', index)
+      yield* getMappers(mapper, debug)
+    } else {
+      console.log('BAD', actual)
+    }
+
+    ++index
+  }
+
+  function convertMapper(mapper: any) {
+    const sources = mapper.sources || [mapper.source],
+      targets = mapper.targets || [mapper.target]
+    if (debug) {
+      console.log('Found mappers for', sources.map((source: any) => source.getSymbol()?.name).join(','))
+    }
+    return { sources, targets }
+  }
+}

@@ -1,11 +1,11 @@
-type Handler = (api: any) => void;
+type Handler = (api: any) => void
 
-let handler: Handler | null = null;
+let handler: Handler | null = null
 
 export function papudoc(api: any) {
-  handler?.(api);
+  handler?.(api)
 }
 
 export function setPapudocHandler(newHandler: Handler | null) {
-  handler = newHandler;
+  handler = newHandler
 }

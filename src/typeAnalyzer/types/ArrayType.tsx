@@ -2,7 +2,8 @@ import TsType, { Complexity, RenderContext } from '../TsType'
 import ts from 'typescript'
 import { AnalyserContext } from '../typeAnalyzer'
 import React from 'react'
-import styled from "styled-components";
+import styled from 'styled-components'
+import { findResolvedTypeAutonest } from './ObjectType'
 
 const ArrayContent = styled.div`
   border-left: 4px solid #cce;
@@ -17,7 +18,22 @@ export default class ArrayType extends TsType {
 
   constructor(type: ts.Type, contextualName: string[], ctx: AnalyserContext) {
     super(contextualName, type)
-    this.elementType = ctx.analyse([...contextualName, 'Elem'], (type as any).resolvedTypeArguments[0])
+    const rawElementType = (type as any).resolvedTypeArguments[0]
+    if (rawElementType.flags & ts.SymbolFlags.TypeParameter) {
+      const foundResolvedType = findResolvedTypeAutonest(ctx, rawElementType, false)
+
+      if (!foundResolvedType) {
+        console.log('CON2', contextualName)
+        //console.log(type.aliasTypeArguments[0].target.typeParameters)
+        //console.log(ctx.typeStack[ctx.typeStack.length - 3].resolvedProperties)
+        //findResolvedTypeAutonest(memberContext, valueType, true)
+        //console.log(member.name, ctx.typeStack[ctx.typeStack.length - 1].mapper)
+        throw new Error('stopping at ' + contextualName.join('.') + type.getSymbol()?.name)
+      }
+      this.elementType = ctx.analyse([...contextualName, 'Elem'], foundResolvedType || rawElementType)
+    } else {
+      this.elementType = ctx.analyse([...contextualName, 'Elem'], rawElementType)
+    }
   }
 
   get complexity(): Complexity {

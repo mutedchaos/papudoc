@@ -12,7 +12,7 @@ export interface AnalyserContext {
   analyse(this: AnalyserContext, contextualName: string[], type: ts.Type): TsType
   checker: ts.TypeChecker
   typeMap: TypeCache
-  typeStack: Array<ts.Type>
+  typeStack: Array<ts.Type | {mapperOnly: true, mapper: any}>
 }
 export type AnalyzeTypeFn = (type: ts.Type, checked: ts.TypeChecker) => TsType
 
@@ -93,7 +93,7 @@ export function analyzeTypeInternal(outerCtx: AnalyserContext, contextualName: s
       if (typeof handler === 'string') return new NamedBuiltinType(type, handler)
       return handler(type)
     } else {
-      throw new Error('stahp')
+      //throw new Error('stahp')
       console.log('FLAGS', type.flags)
       return new NamedBuiltinType(type, 'unsupported-by-papudoc')
     }

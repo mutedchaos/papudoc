@@ -34,7 +34,7 @@ export default class TypeCache {
   }
 
   private ensureUniqueNames() {
-    let changed = false
+    /* let changed = false
     const names = new Set<string>()
     for (const entry of this.entries) {
       const name = entry.analyzed.name
@@ -46,6 +46,6 @@ export default class TypeCache {
         names.add(name)
       }
     }
-    if (changed) this.ensureUniqueNames()
+    if (changed) this.ensureUniqueNames()*/
   }
 }
